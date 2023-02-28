@@ -104,24 +104,6 @@ def forward_propogation(input,weight,bias,no_of_hidden_layers,output):
 
   return activation,loss
 
-'''neuron_each_layer=layers_data()  # is a list which contain the number of neuron in each hidden  layer 
-weight,bias=weight_bias_init(neuron_each_layer)
-activation,loss=forward_propogation(x_data,weight,bias,len(neuron_each_layer),train_Y)'''
-
-''''loss=0
-c=activation[-1].T
-for i in range(x_data.shape[1]):
-  loss+=-np.log2(c[i][train_Y[i]])'''
-
-'''one_hot_matrix=np.zeros((activation[-1].shape[1],activation[-1].shape[0]))
-for i in range(activation[-1].shape[1]):
-  one_hot_matrix[i][train_Y[i]]=1
-
-print(train_Y.shape)'''
-
-a=np.ones((3,4))
-print(1-a)
-
 def backward_propogation(activation,output,no_hidden_layers,weights):
   gradient_activation=[]
   gradient_weight=[]
@@ -158,18 +140,8 @@ def backward_propogation(activation,output,no_hidden_layers,weights):
 
   return gradient_weight,gradient_bias
 
-l=[] 
-for i in train_Y:
-  if i not in l:
-    l.append(i)
-print(l)
-
 def sigmoid_derivative(z):
   return np.multiply(sigmoid(z),(1-sigmoid(z)))
-
-c,d=backward_propogation(activation,train_Y,len(neuron_each_layer))
-for i in d:
-  print(i.shape)
 
 def cross_entropy(yhat,y_train):
   #chalo game shuru karte hain
@@ -189,25 +161,9 @@ def gradient_descent(input,weight,bias,no_of_hidden_layers,output,epochs,learnin
 
     print(loss/60000)
 
-print(x_data.shape)
-
 neuron_each_layer=layers_data()
 weight,bias=weight_bias_init(neuron_each_layer)
 
 gradient_descent(x_data,weight,bias,len(neuron_each_layer),train_Y,10,0.000001)
 
-def test(x_test,w,b,no_hidden_l,y_test):
-  activation=[]
-  h=[]
-  activation,loss=forward_propogation(x_test,w,b,no_hidden_l,y_test)
-  l=len(w)
-  ypred=np.argmax(activation[-1].T,axis=1)
-  print(ypred)
-  print(y_test)
-  count=0
-  for i in range(y_test.shape[0]):
-    if ypred[i]!=y_test[i]:
-      count=count+1
-  print((x_test.shape[1]-count)/y_test.shape[0])
 
-test(x_test,weight,bias,len(neuron_each_layer),test_Y)
