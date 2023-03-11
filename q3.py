@@ -17,42 +17,70 @@ Original file is located at
 """
 import argparse
 
-parser=argparse.ArgumentParser()
-parser.add_argument("-e","--epochs",type=int,default=10)
-parser.add_argument("-b","--batch_size",type=int,default=32)
-parser.add_argument("-l","--loss",choices=["mean_squared_error", "cross_entropy"],default="cross_entropy")
-parser.add_argument("-o","--optimizer",choices=["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"],default="nadam")
-parser.add_argument("-lr","--learning_rate",type=float,default=0.001)
-parser.add_argument("-a","--activation",choices=["identity", "sigmoid", "tanh", "ReLU"],default="ReLU")
-parser.add_argument("-sz","--hidden_size",type=int,default=128)
-parser.add_argument("-nhl","--num_layers",type=int,default=3)
-parser.add_argument("-w_i", "--weight_init",choices=["random", "Xavier"],default="Xavier")
-#decay no
-parser.add_argument("-eps", "--epsilon", type=float , default = 1e-3)
-parser.add_argument("-beta2","--beta2",type=float, default=0.999)
-parser.add_argument("-beta1","--beta1",type=float, default=0.9)
-parser.add_argument("-beta","--beta",type=float, default=0.9)
+
+# parser=argparse.ArgumentParser()
+# parser.add_argument("-e","--epochs",type=int,default=1)
+# parser.add_argument("-b","--batch_size",type=int,default=4)
+# parser.add_argument("-l","--loss",choices=["mean_squared_error", "cross_entropy"],default="cross_entropy")
+# parser.add_argument("-o","--optimizer",choices=["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"],default="sgd")
+# parser.add_argument("-lr","--learning_rate",type=float,default=0.1)
+# parser.add_argument("-a","--activation",choices=["sigmoid", "tanh", "ReLU"],default="sigmoid")
+# parser.add_argument("-sz","--hidden_size",type=int,default=128)
+# parser.add_argument("-nhl","--num_layers",type=int,default=3)
+# parser.add_argument("-w_i", "--weight_init",choices=["random", "Xavier"],default="random")
+# parser.add_argument("-eps", "--epsilon", type=float , default = 1e-3)
+# parser.add_argument("-beta2","--beta2",type=float, default=0.5)
+# parser.add_argument("-beta1","--beta1",type=float, default=0.999)
+# parser.add_argument("-beta","--beta",type=float, default=0.9)
+# parser.add_argument("-w_d","--weight_decay",type=float, default=0.0001)
+# parser.add_argument("-m","--momentum",type=float, default=0.9)
+
 #momentu no
 
 
 
 
-arg=parser.parse_args()
+# arg=parser.parse_args()
 
-epochs=arg.epochs
-batch_size=arg.batch_size
-loss=arg.loss
-optimizer=arg.optimizer
-learning_rate=arg.learning_rate
-activation_fn=arg.activation
-no_hidden_layer=arg.num_layers
-hidden_layer_size=arg.hidden_size
-weight_init_fn=arg.weight_init
-epsillon=arg.epsilon
-beta=arg.beta
-beta1=arg.beta1
-beta2=arg.beta2
 
+# mometum=arg.momentum
+# epochs=arg.epochs
+# batch_size=arg.batch_size
+# loss=arg.loss
+# optimizer=arg.optimizer
+# learning_rate=arg.learning_rate
+# activation_fn=arg.activation
+# no_hidden_layer=arg.num_layers
+# hidden_layer_size=arg.hidden_size
+# weight_init_fn=arg.weight_init
+# epsillon=arg.epsilon
+# beta=arg.beta
+# beta1=arg.beta1
+# beta2=arg.beta2
+# weight_decay=arg.weight_decay
+
+
+
+default_params=dict(
+epochs=10,
+batch_size=32,
+weight_decay=0,
+optimizer='nadam',
+learning_rate=0.001,
+activation_fn='sigmoid',
+no_hidden_layer=3,
+hidden_layer_size=128,
+weight_init_fn='Xavier',
+epsillon=1e-3,
+
+
+)
+
+loss='cross_entropy'
+beta=0.9
+beta1=0.9
+beta2=0.999
+mometum=0.9
 
 
 
@@ -70,7 +98,10 @@ train_X=train_X/255
 test_X=test_X/255
 
 #for validation prepare data
-X_train, X_validation, y_train, y_val = train_test_split(train_X, train_Y, test_size=0.1, random_state=0)
+X_train, X_validation, y_train, y_val = train_test_split(train_X, train_Y, test_size=0.1, random_state=10)
+run=wandb.init(config=default_params,project='DLassignment1',entity='singhbhavesh999',reinit='true')
+config=wandb.config
+
 
 
 
@@ -128,12 +159,22 @@ def relu_der(a):
   a[a>0]=1
   return a
 
-def cross_entropy_loss(y_hat,y):
+def cross_entropy_loss(y_hat,y,weight,alpha):
   loss=0
+  l2reg=0
   for i in range(y.shape[0]):
-    loss+=-np.log2(y_hat[i][y[i]])
-  loss=loss/y.shape[0]
-  return loss
+    loss+=-np.log2(y_hat[i][y[i]]+1e-8)
+  loss=loss
+
+  for i in range(len(weight)):
+    l2reg+=np.sum((weight[i])**2)
+  l2reg=((l2reg*alpha)/2)
+
+  loss+=l2reg
+  
+  return loss/y.shape[0]
+
+
 
 def mse_loss(y_hat,y):
   loss=0
@@ -178,20 +219,20 @@ def forward_propogation(input,weight,bias,no_hidden_layer,output,activation_func
   preactivation.append(temp_preactive)
   activation.append(softmax(np.copy(temp_preactive)))
 
-  temp=activation[-1].T
-  if(loss_fn=='cross_entropy'):
-    loss=cross_entropy_loss(temp,output)
-  elif(loss_fn=='mean_squared_error'):
-    loss=mse_loss(temp,output)
+#   temp=activation[-1].T
+#   if(loss_fn=='cross_entropy'):
+#     loss=cross_entropy_loss(temp,output)
+#   elif(loss_fn=='mean_squared_error'):
+#     loss=mse_loss(temp,output)
   
   
-  return activation,loss,preactivation
+  return activation,preactivation
 
-def backward_propogation(activation,output,no_hidden_layer,weights,a,batch_size,activation_function):
+def backward_propogation(activation,output,no_hidden_layer,weights,a,batch_size,activation_function,weight_decay):
   #gradient_activation=[]
   gradient_weight=[]
   gradient_bias=[]
-  
+  weight_decay=0.0001
   # we need one hot vector for output in the format 10*60000 
   hot=np.zeros((activation[-1].shape[1],activation[-1].shape[0]))
   for i in range(activation[-1].shape[1]):
@@ -215,12 +256,19 @@ def backward_propogation(activation,output,no_hidden_layer,weights,a,batch_size,
         gradient_activation=gradient_temp*(tanh_der(np.copy(a[i])))
       elif(activation_function=='ReLU'):
         gradient_activation=gradient_temp*(np.copy(relu_der(a[i])))
+  
+  
   gradient_weight.reverse()
   gradient_bias.reverse()
+
+  for i in range(len(gradient_weight)):
+    gradient_weight[i]+=weight_decay*weights[i]
+
+
   return gradient_weight,gradient_bias
 
 
-def batch_gradient_descent(input,output,epochs,learning_rate,batch_size,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn):
+def batch_gradient_descent(input,output,epochs,learning_rate,batch_size,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay):
   weight,bias = init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn)
   no_batches=input.shape[1]/batch_size
   
@@ -231,23 +279,23 @@ def batch_gradient_descent(input,output,epochs,learning_rate,batch_size,activati
     for j in range(0,input.shape[1],batch_size):
       x_batch= input[:,j:j+batch_size]
       y_batch=  output[j:j+batch_size] 
-      activation,loss,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
-      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function)
+      activation,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
+      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function,weight_decay)
 
-      loss_total+=loss
+      
       
       for k in range(len(weight)):
-        weight[k]=weight[k]-learning_rate*gradient_weight[k]
+        weight[k]=weight[k]-learning_rate*(gradient_weight[k])
         bias[k]=bias[k]-learning_rate*gradient_bias[k]
 
-    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn)   
-    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn)
-    
+    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
+    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
+    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
     
 
     
-def momentum_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn):
+def momentum_gradient_descent(input,output,epochs,learning_rate,batch_size,mometum,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay):
   weight,bias = init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn)
   ut_weight=[]
   ut_bias=[]
@@ -261,24 +309,24 @@ def momentum_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,
     for j in range(0,input.shape[1],batch_size):
       x_batch= input[:,j:j+batch_size]
       y_batch=  output[j:j+batch_size] 
-      activation,loss,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
-      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function)
+      activation,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
+      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function,weight_decay)
      
-      loss_total+=loss
+      
 
       for k in range(len(weight)):
-        ut_weight[k]=beta*ut_weight[k]+learning_rate*gradient_weight[k]
-        ut_bias[k]=beta*ut_bias[k]+learning_rate*gradient_bias[k]
+        ut_weight[k]=mometum*ut_weight[k]+learning_rate*gradient_weight[k]
+        ut_bias[k]=mometum*ut_bias[k]+learning_rate*gradient_bias[k]
         weight[k]=weight[k]-ut_weight[k]
         bias[k]=bias[k]-ut_bias[k]
 
-    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn)   
-    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn)
-    
+    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
+    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
+    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
-def nesterov_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn):
+def nesterov_gradient_descent(input,output,epochs,learning_rate,batch_size,mometum,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay):
   weight,bias = init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn)
   ut_weight=[]
   ut_bias=[]
@@ -292,27 +340,27 @@ def nesterov_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,
       x_batch= input[:,j:j+batch_size]
       y_batch=  output[j:j+batch_size]
       for k in range(len(weight)):
-        weight[k]= weight[k]-beta*ut_weight[k]
-        bias[k]=bias[k]-beta*ut_bias[k]
-      activation,loss,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
-      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function)
+        weight[k]= weight[k]-mometum*ut_weight[k]
+        bias[k]=bias[k]-mometum*ut_bias[k]
+      activation,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
+      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function,weight_decay)
       #print(loss)
 
-      loss_total+=loss
+      
 
       for k in range(len(weight)):
-        ut_weight[k]=beta*ut_weight[k]+learning_rate*gradient_weight[k]
-        ut_bias[k]=beta*ut_bias[k]+learning_rate*gradient_bias[k]
+        ut_weight[k]=mometum*ut_weight[k]+learning_rate*gradient_weight[k]
+        ut_bias[k]=mometum*ut_bias[k]+learning_rate*gradient_bias[k]
         weight[k]=weight[k]-ut_weight[k]
         bias[k]=bias[k]-ut_bias[k]
 
-    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn)   
-    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn)
-    
+    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
+    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
+    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
-def rmsprop_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,epsillon,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn):
+def rmsprop_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,epsillon,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay):
   weight,bias = init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn)
   ut_weight=[]
   ut_bias=[]
@@ -325,25 +373,25 @@ def rmsprop_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,e
     for j in range(0,input.shape[1],batch_size):
       x_batch= input[:,j:j+batch_size]
       y_batch=  output[j:j+batch_size] 
-      activation,loss,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
-      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function)
+      activation,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
+      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function,weight_decay)
       #print(loss)
 
-      loss_total+=loss
+      
 
       for k in range(len(weight)):
         ut_weight[k]=beta*ut_weight[k]+(1-beta)*np.square(gradient_weight[k])
         ut_bias[k]=beta*ut_bias[k]+(1-beta)*np.square(gradient_bias[k])
-        weight[k]=weight[k]-learning_rate*(gradient_weight[k]/np.sqrt(ut_weight[k]+epsillon))
+        weight[k]=weight[k]-learning_rate*((gradient_weight[k]/np.sqrt(ut_weight[k]+epsillon)))
         bias[k]=bias[k]-learning_rate*(gradient_bias[k]/np.sqrt(ut_bias[k]+epsillon))
 
-    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn)   
-    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn)
-    
+    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
+    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
+    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
-def adam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn):
+def adam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay):
   weight,bias = init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn)
   mt_weight=[]
   mt_bias=[]
@@ -372,11 +420,11 @@ def adam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,bet
       t+=1
       x_batch= input[:,j:j+batch_size]
       y_batch=  output[j:j+batch_size] 
-      activation,loss,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
-      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function)
+      activation,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
+      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function,weight_decay)
       #print(loss)
 
-      loss_total+=loss
+      
 
       for k in range(len(weight)):
         mt_weight[k]=beta1*mt_weight[k]+(1-beta1)*gradient_weight[k]
@@ -397,13 +445,13 @@ def adam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,bet
         bias[k]=bias[k]-(learning_rate)*(np.divide(mt_hat_bias[k],(np.sqrt(vt_hat_bias[k]+epsillon))))
 
 
-    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn)   
-    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn)
-    
+    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
+    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
+    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
-def nadam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn):
+def nadam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_function,loss_fn,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay):
   weight,bias = init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn)
   mt_weight=[]
   mt_bias=[]
@@ -434,11 +482,11 @@ def nadam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,be
       t+=1
       x_batch= input[:,j:j+batch_size]
       y_batch=  output[j:j+batch_size] 
-      activation,loss,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
-      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function)
+      activation,a=forward_propogation(x_batch,weight,bias,no_hidden_layer,y_batch,activation_function,loss_fn)
+      gradient_weight,gradient_bias=backward_propogation(activation,y_batch,no_hidden_layer,weight,a,batch_size,activation_function,weight_decay)
       #print(loss)
 
-      loss_total+=loss
+      
 
       for k in range(len(weight)):
         mt_weight[k]=beta1*mt_weight[k]+(1-beta1)*gradient_weight[k]
@@ -459,9 +507,9 @@ def nadam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,be
         bias[k]=bias[k]-(learning_rate)*(np.divide(beta1*mt_hat_bias[k]+((1-beta1)*gradient_bias[k])/(1-(beta1**t)),(np.sqrt(vt_hat_bias[k]+epsillon))))
 
 
-    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn)   
-    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn)
-    
+    train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
+    validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
+    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
@@ -478,8 +526,8 @@ def init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn):
 
   if(weight_init_fn=='random'):
      for i in range(no_hidden_layer+1):
-       weight.append(np.random.uniform(-0.1,0.1,(layer[i+1],layer[i])))
-       bias.append(np.random.uniform(-0.1,0.1,(layer[i+1],1)))
+       weight.append(np.random.uniform(-0.5,0.5,(layer[i+1],layer[i])))
+       bias.append(np.random.uniform(-0.5,0.5,(layer[i+1],1)))
 
   elif(weight_init_fn=='Xavier'):
     for i in range(no_hidden_layer+1):
@@ -490,9 +538,18 @@ def init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn):
 
   return weight,bias
 
-def test_data_accuracy(test_input,weight,bias,no_hidden_layer,test_output,activation_fn,loss_fn):
+def test_data_accuracy(test_input,weight,bias,no_hidden_layer,test_output,activation_fn,loss_fn,weight_decay):
+  #filal abhi yaha likh de badh mai pass karna 
+  
+
   activation=[]
-  activation,loss,preactivation=forward_propogation(test_input,weight,bias,no_hidden_layer,test_output,activation_fn,loss_fn)
+  activation,preactivation=forward_propogation(test_input,weight,bias,no_hidden_layer,test_output,activation_fn,loss_fn)
+  temp=activation[-1].T
+  if(loss_fn=='cross_entropy'):
+    loss=cross_entropy_loss(temp,test_output,weight,weight_decay)
+  elif(loss_fn=='mean_squared_error'):
+    loss=mse_loss(temp,test_output)
+
   y_hat=np.argmax(activation[-1].T,axis=1)
   count=0
   for i in range(test_output.shape[0]):
@@ -503,36 +560,50 @@ def test_data_accuracy(test_input,weight,bias,no_hidden_layer,test_output,activa
 
 
 
+def main_call(x_data,y_train,epochs,learning_rate,batch_size,beta,beta1,beta2,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,optimizer,weight_init_fn,weight_decay):
+  
+  if(optimizer=='sgd'):
+    print('sgd')
+    batch_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay)
 
-if(optimizer=='sgd'):
-  print('sgd')
-  batch_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn)
-
-elif(optimizer=='momentum'):
-  print('momentum')
-  momentum_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn)
-
-
-elif(optimizer=='nag'):
-  print('nag')
-  nesterov_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn)
-
-elif(optimizer=='rmsprop'):
-  print('rmsprop')
-  rmsprop_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta,epsillon,activation_function,loss,no_hidden_layer,hidden_layer_size,weight_init_fn)
+  elif(optimizer=='momentum'):
+    print('momentum')
+    momentum_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay)
 
 
-elif(optimizer=='adam'):
-  print('adam')
-  adam_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn)
+  elif(optimizer=='nag'):
+    print('nag')
+    nesterov_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay)
+
+  elif(optimizer=='rmsprop'):
+    print('rmsprop')
+    rmsprop_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay)
 
 
-elif(optimizer=='nadam'):
-  print('nadam')
-  nadam_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn)
+  elif(optimizer=='adam'):
+    print('adam')
+    adam_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay)
+
+
+  elif(optimizer=='nadam'):
+    print('nadam')
+    nadam_gradient_descent(x_data,y_train,epochs,learning_rate,batch_size,beta1,beta2,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,weight_init_fn,weight_decay)
 
 
 
+epochs=config.epochs
+batch_size=config.batch_size
 
- 
+optimizer=config.optimizer
+learning_rate=config.learning_rate
+activation_fn=config.activation_fn
+no_hidden_layer=config.no_hidden_layer
+hidden_layer_size=config.hidden_layer_size
+weight_init_fn=config.weight_init_fn
+epsillon=config.epsillon
+weight_decay=config.weight_decay
+
+run.name='hl_'+str(no_hidden_layer)+'_bs_'+str(batch_size)+'_ac_'+activation_fn+'_hls_'+str(hidden_layer_size)
+main_call(x_data,y_train,epochs,learning_rate,batch_size,beta,beta1,beta2,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,optimizer,weight_init_fn,weight_decay)
+
 
