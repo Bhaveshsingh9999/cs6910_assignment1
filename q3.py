@@ -18,69 +18,66 @@ Original file is located at
 import argparse
 
 
-# parser=argparse.ArgumentParser()
-# parser.add_argument("-e","--epochs",type=int,default=1)
-# parser.add_argument("-b","--batch_size",type=int,default=4)
-# parser.add_argument("-l","--loss",choices=["mean_squared_error", "cross_entropy"],default="cross_entropy")
-# parser.add_argument("-o","--optimizer",choices=["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"],default="sgd")
-# parser.add_argument("-lr","--learning_rate",type=float,default=0.1)
-# parser.add_argument("-a","--activation",choices=["sigmoid", "tanh", "ReLU"],default="sigmoid")
-# parser.add_argument("-sz","--hidden_size",type=int,default=128)
-# parser.add_argument("-nhl","--num_layers",type=int,default=3)
-# parser.add_argument("-w_i", "--weight_init",choices=["random", "Xavier"],default="random")
-# parser.add_argument("-eps", "--epsilon", type=float , default = 1e-3)
-# parser.add_argument("-beta2","--beta2",type=float, default=0.5)
-# parser.add_argument("-beta1","--beta1",type=float, default=0.999)
-# parser.add_argument("-beta","--beta",type=float, default=0.9)
-# parser.add_argument("-w_d","--weight_decay",type=float, default=0.0001)
-# parser.add_argument("-m","--momentum",type=float, default=0.9)
-
-#momentu no
+parser=argparse.ArgumentParser()
+parser.add_argument("-e","--epochs",type=int,default=10)
+parser.add_argument("-b","--batch_size",type=int,default=16)
+parser.add_argument("-l","--loss",choices=["mean_squared_error", "cross_entropy"],default="cross_entropy")
+parser.add_argument("-o","--optimizer",choices=["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"],default="momentum")
+parser.add_argument("-lr","--learning_rate",type=float,default=0.001)
+parser.add_argument("-a","--activation",choices=["sigmoid", "tanh", "ReLU"],default="tanh")
+parser.add_argument("-sz","--hidden_size",type=int,default=128)
+parser.add_argument("-nhl","--num_layers",type=int,default=3)
+parser.add_argument("-w_i", "--weight_init",choices=["random", "Xavier"],default="Xavier")
+parser.add_argument("-eps", "--epsilon", type=float , default = 1e-3)
+parser.add_argument("-beta2","--beta2",type=float, default=0.999)
+parser.add_argument("-beta1","--beta1",type=float, default=0.9)
+parser.add_argument("-beta","--beta",type=float, default=0.9)
+parser.add_argument("-w_d","--weight_decay",type=float, default=0.0001)
+parser.add_argument("-m","--momentum",type=float, default=0.9)
 
 
 
 
-# arg=parser.parse_args()
 
 
-# mometum=arg.momentum
-# epochs=arg.epochs
-# batch_size=arg.batch_size
-# loss=arg.loss
-# optimizer=arg.optimizer
-# learning_rate=arg.learning_rate
-# activation_fn=arg.activation
-# no_hidden_layer=arg.num_layers
-# hidden_layer_size=arg.hidden_size
-# weight_init_fn=arg.weight_init
-# epsillon=arg.epsilon
-# beta=arg.beta
-# beta1=arg.beta1
-# beta2=arg.beta2
-# weight_decay=arg.weight_decay
+arg=parser.parse_args()
+
+
+mometum=arg.momentum
+epochs=arg.epochs
+batch_size=arg.batch_size
+loss=arg.loss
+optimizer=arg.optimizer
+learning_rate=arg.learning_rate
+activation_fn=arg.activation
+no_hidden_layer=arg.num_layers
+hidden_layer_size=arg.hidden_size
+weight_init_fn=arg.weight_init
+epsillon=arg.epsilon
+beta=arg.beta
+beta1=arg.beta1
+beta2=arg.beta2
+weight_decay=arg.weight_decay
 
 
 
-default_params=dict(
-epochs=10,
-batch_size=32,
-weight_decay=0,
-optimizer='nadam',
-learning_rate=0.001,
-activation_fn='sigmoid',
-no_hidden_layer=3,
-hidden_layer_size=128,
-weight_init_fn='Xavier',
-epsillon=1e-3,
+# default_params=dict(
+# epochs=10,
+# batch_size=32,
+# weight_decay=0,
+# optimizer='nadam',
+# learning_rate=0.001,
+# activation_fn='sigmoid',
+# no_hidden_layer=3,
+# hidden_layer_size=128,
+# weight_init_fn='Xavier',
+# epsillon=1e-3,
 
 
-)
+# )
 
-loss='cross_entropy'
-beta=0.9
-beta1=0.9
-beta2=0.999
-mometum=0.9
+
+
 
 
 
@@ -90,17 +87,17 @@ mometum=0.9
 
 import wandb
 import numpy as np
-from keras.datasets import fashion_mnist
+from keras.datasets import mnist
 from sklearn.model_selection import train_test_split
-(train_X,train_Y),(test_X,test_Y)=fashion_mnist.load_data()
+(train_X,train_Y),(test_X,test_Y)=mnist.load_data()
 #normalize the train dataset as we values are from 0-255
 train_X=train_X/255
 test_X=test_X/255
 
 #for validation prepare data
 X_train, X_validation, y_train, y_val = train_test_split(train_X, train_Y, test_size=0.1, random_state=10)
-run=wandb.init(config=default_params,project='DLassignment1',entity='singhbhavesh999',reinit='true')
-config=wandb.config
+# run=wandb.init(config=default_params,project='DLassignment1',entity='singhbhavesh999',reinit='true')
+# config=wandb.config
 
 
 
@@ -290,7 +287,7 @@ def batch_gradient_descent(input,output,epochs,learning_rate,batch_size,activati
 
     train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
     validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
-    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
+    #wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
     
 
@@ -322,7 +319,7 @@ def momentum_gradient_descent(input,output,epochs,learning_rate,batch_size,momet
 
     train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
     validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
-    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
+    #wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
@@ -356,7 +353,7 @@ def nesterov_gradient_descent(input,output,epochs,learning_rate,batch_size,momet
 
     train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
     validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
-    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
+    #wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
@@ -387,7 +384,7 @@ def rmsprop_gradient_descent(input,output,epochs,learning_rate,batch_size,beta,e
 
     train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
     validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
-    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
+    #wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
@@ -447,7 +444,7 @@ def adam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,bet
 
     train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
     validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
-    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
+    #wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
 
 
@@ -509,8 +506,26 @@ def nadam_gradient_descent(input,output,epochs,learning_rate,batch_size,beta1,be
 
     train_accuracy,train_loss=test_data_accuracy(input,weight,bias,no_hidden_layer,output,activation_function,loss_fn,weight_decay)   
     validation_accuracy,validation_loss=test_data_accuracy(x_val,weight,bias,no_hidden_layer,y_val,activation_function,loss_fn,weight_decay)
-    wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
+    #wandb.log({"train_accuracy":train_accuracy,"train_error":train_loss,"val_accuracy":validation_accuracy,"val_error":validation_loss})
     print("epoch is ", i ," train loss ",train_loss,' train accu ',train_accuracy, ' validation accuracy is ',validation_accuracy,' validation loss ',validation_loss)
+
+#confusion matrix ke liye 
+
+def predict(input,weight,bias,no_hidden_layer,activation_fn,loss_fn):
+  activation,preactivation=forward_propogation(x_test,weight,bias,no_hidden_layer,activation_fn,loss_fn)
+  last_layer_data=activation[-1].T
+  predicted_output=last_layer_data.argmax(axis=1)
+  #cm=confusion_matrix(test_Y,predicted_output)
+  #print(cm)
+  label_data=['T-shirt/top','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Ankle boot']
+  #val_predictions = model.predict(val_data)
+  #top_pred_ids = val_predictions.argmax(axis=1)
+  #ground_truth_ids = val_labels.argmax(axis=1)
+  wandb.log({"my_conf_mat_id" : wandb.plot.confusion_matrix(preds=predicted_output, y_true=test_Y,class_names=label_data)})
+
+
+
+
 
 
 def init_layer(no_hidden_layer,hidden_layer_size,weight_init_fn):
@@ -591,19 +606,34 @@ def main_call(x_data,y_train,epochs,learning_rate,batch_size,beta,beta1,beta2,ep
 
 
 
-epochs=config.epochs
-batch_size=config.batch_size
+# epochs=config.epochs
+# batch_size=config.batch_size
 
-optimizer=config.optimizer
-learning_rate=config.learning_rate
-activation_fn=config.activation_fn
-no_hidden_layer=config.no_hidden_layer
-hidden_layer_size=config.hidden_layer_size
-weight_init_fn=config.weight_init_fn
-epsillon=config.epsillon
-weight_decay=config.weight_decay
+# optimizer=config.optimizer
+# learning_rate=config.learning_rate
+# activation_fn=config.activation_fn
+# no_hidden_layer=config.no_hidden_layer
+# hidden_layer_size=config.hidden_layer_size
+# weight_init_fn=config.weight_init_fn
+# epsillon=config.epsillon
+# weight_decay=config.weight_decay
 
-run.name='hl_'+str(no_hidden_layer)+'_bs_'+str(batch_size)+'_ac_'+activation_fn+'_hls_'+str(hidden_layer_size)
+# run.name='hl_'+str(no_hidden_layer)+'_bs_'+str(batch_size)+'_ac_'+activation_fn+'_hls_'+str(hidden_layer_size)
+# no_hidden_layer=3
+# hidden_layer_size=128
+# epochs=10
+# learning_rate=0.001
+# batch_size=16
+# activation_fn='tanh'
+# loss='cross_entropy'
+# beta=0.9
+# beta1=0.9
+# beta2=0.999
+# mometum=0.9
+# optimizer='momentum'
+# weight_decay=0.0001
+# weight_init_fn='Xavier'
+# epsillon=1e-3
 main_call(x_data,y_train,epochs,learning_rate,batch_size,beta,beta1,beta2,epsillon,activation_fn,loss,no_hidden_layer,hidden_layer_size,optimizer,weight_init_fn,weight_decay)
 
 
