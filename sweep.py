@@ -6,8 +6,6 @@ code to run sweep in wandb
 
 
 import argparse
-import os
-os.environ['WAND_NOTEBOOK_NAME']='sweep.py'
 #!wandb login 44fa96b263794ea519fb29399eb6b8f469eb934b   
 
 
