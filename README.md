@@ -7,7 +7,7 @@ for performing sweep from wandb first create new sweep and initilize the sweep w
 run the sweep.py file
 using this sweep.py file it run a sweep in wandb and all the parameters that are initialized in the sweepinit combination of those parameter is taken and it keep on ruinning with all these various combination from this we take the hyperparamter set which give the highest validation accuracy 
 
-From the second question onwards all the code is present in train.py and its has been set to best default values argparse argument can be used to pass any different value for the hyperparameter.
+From the second question onwards all the code is present in train.py and its has been set to best default values argparse argument can be used to pass any different value for the hyperparameter. the train.py has been evolved from code in q2.py and q3.py later final devlopment is train.py so the history can be checked in q2.py and q3.py
 
 
 
