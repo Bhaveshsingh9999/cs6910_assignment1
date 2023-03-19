@@ -1,0 +1,24 @@
+program: afterl2.py
+method: bayes
+metric:
+  goal: maximize
+  name: val_accuracy
+parameters: 
+  epochs:
+    values: [5,10]
+  batch_size :
+    values : [16,32,64]
+  
+
+  optimizer:
+    values : ["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"]
+  learning_rate:
+    values : [1e-2,1e-3]
+  activation_fn :
+    values : ["sigmoid", "tanh", "ReLU"]
+  no_hidden_layer:
+    values : [3,4,5]
+  hidden_layer_size:
+    values: [32,64,128]
+  weight_init_fn:
+    values : ["random", "Xavier"]
